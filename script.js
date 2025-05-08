@@ -1,4 +1,3 @@
-// Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyBJmnErOKgB5Pp45A00A1J_agJQFSPAyjY",
     authDomain: "edutech-a9b19.firebaseapp.com",
@@ -15,7 +14,7 @@ try {
     firebase.initializeApp(firebaseConfig);
 } catch (error) {
     console.error('Firebase initialization failed:', error);
-    showError('login-error', 'Failed to initialize application. Please try again later.');
+    showError('login-error', `Failed to initialize application: ${error.message}`);
 }
 
 const auth = firebase.auth();
@@ -98,6 +97,12 @@ function validateName(name) {
     return name.trim().length > 0 && name.trim().length <= 100;
 }
 
+function sanitizeInput(input) {
+    const div = document.createElement('div');
+    div.textContent = input;
+    return div.innerHTML;
+}
+
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -119,6 +124,16 @@ function closeModal(modalId) {
         inputs.forEach(input => input.value = '');
     }
 }
+
+// Handle Escape key to close modals
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const activeModal = document.querySelector('.modal.active');
+        if (activeModal) {
+            closeModal(activeModal.id);
+        }
+    }
+});
 
 // Show Section
 function showSection(sectionId) {
@@ -163,6 +178,7 @@ function detachListeners(activeSection) {
         (activeSection === 'subscriptions' && ref === 'users') ||
         (activeSection === 'revenue' && ref === 'users')
     ));
+    console.log(`Active listeners: ${listeners.length}`);
 }
 
 // Navigation
@@ -177,12 +193,16 @@ DOM.navLinks.forEach(link => {
 // Search Functionality
 function setupSearch() {
     if (DOM.searchInput) {
+        let debounceTimeout;
         DOM.searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            const activeSection = document.querySelector('.content-section[style*="block"]')?.id;
-            if (activeSection === 'users') loadUsers(query);
-            else if (activeSection === 'payments') loadPayments(query);
-            else if (activeSection === 'subscriptions') loadSubscriptions(query);
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                const query = sanitizeInput(e.target.value.toLowerCase().trim());
+                const activeSection = document.querySelector('.content-section[style*="block"]')?.id;
+                if (activeSection === 'users') loadUsers(query);
+                else if (activeSection === 'payments') loadPayments(query);
+                else if (activeSection === 'subscriptions') loadSubscriptions(query);
+            }, 300);
         });
     }
 }
@@ -207,16 +227,16 @@ async function loadProfile(user, userData) {
         const snapshot = await db.ref('users/' + user.uid).once('value');
         const dbData = snapshot.val() || {};
 
-        if (profileName) profileName.textContent = dbData.name || userData.name || 'Admin User';
-        if (profileRole) profileRole.textContent = dbData.role ? dbData.role.charAt(0).toUpperCase() + dbData.role.slice(1) : 'Admin';
-        if (profileEmail) profileEmail.textContent = dbData.email || user.email || 'N/A';
-        if (profilePhone) profilePhone.textContent = dbData.phone || 'Not provided';
+        if (profileName) profileName.textContent = sanitizeInput(dbData.name || userData.name || 'Admin User');
+        if (profileRole) profileRole.textContent = sanitizeInput(dbData.role ? dbData.role.charAt(0).toUpperCase() + dbData.role.slice(1) : 'Admin');
+        if (profileEmail) profileEmail.textContent = sanitizeInput(dbData.email || user.email || 'N/A');
+        if (profilePhone) profilePhone.textContent = sanitizeInput(dbData.phone || 'Not provided');
         if (profileLastLogin) profileLastLogin.textContent = dbData.lastLogin ? new Date(dbData.lastLogin).toLocaleString() : 'N/A';
         if (profileCreated) profileCreated.textContent = user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleString() : 'N/A';
-        if (profileSubscription) profileSubscription.textContent = dbData.subscription_plan || 'N/A';
+        if (profileSubscription) profileSubscription.textContent = sanitizeInput(dbData.subscription_plan || 'N/A');
     } catch (error) {
         console.error('Error loading profile:', error);
-        showError('profile-error', 'Failed to load profile data.');
+        showError('profile-error', `Failed to load profile: ${error.message}`);
     } finally {
         hideLoading('profile-loading');
     }
@@ -224,7 +244,7 @@ async function loadProfile(user, userData) {
 
 // Handle Login
 async function handleLogin() {
-    const email = document.getElementById('login-email')?.value?.trim();
+    const email = sanitizeInput(document.getElementById('login-email')?.value?.trim());
     const password = document.getElementById('login-password')?.value;
 
     if (!email || !password) {
@@ -262,7 +282,7 @@ auth.onAuthStateChanged(user => {
                 currentUserId = user.uid;
                 if (DOM.loginView) DOM.loginView.style.display = 'none';
                 if (DOM.adminPanel) DOM.adminPanel.style.display = 'flex';
-                if (DOM.adminName) DOM.adminName.textContent = userData.name || 'Admin';
+                if (DOM.adminName) DOM.adminName.textContent = sanitizeInput(userData.name || 'Admin');
                 loadProfile(user, userData);
                 showSection('dashboard');
                 setupSearch();
@@ -311,7 +331,7 @@ async function handleLogout() {
 
 // Change Admin Credentials
 async function changeAdminCredentials() {
-    const newEmail = document.getElementById('new-admin-email')?.value.trim();
+    const newEmail = sanitizeInput(document.getElementById('new-admin-email')?.value.trim());
     const newPassword = document.getElementById('new-admin-password')?.value;
 
     if (!newEmail && !newPassword) {
@@ -387,8 +407,8 @@ async function saveSettings() {
 // Log Activity
 function logActivity(userEmail, action) {
     db.ref('activity').push({
-        user: userEmail,
-        action: action,
+        user: sanitizeInput(userEmail),
+        action: sanitizeInput(action),
         timestamp: Date.now()
     }).catch(error => {
         console.error('Error logging activity:', error);
@@ -428,7 +448,8 @@ async function loadDashboard() {
                 user.subscription_status &&
                 user.subscription_expiry > Date.now() &&
                 user.subscription_amount &&
-                user.subscription_start
+                user.subscription_start &&
+                user.payment_status === 'Approved'
             ) {
                 const startDate = new Date(user.subscription_start);
                 if (!isNaN(startDate) && startDate.getMonth() === currentMonth && startDate.getFullYear() === currentYear) {
@@ -446,7 +467,7 @@ async function loadDashboard() {
                 activitySnapshot.forEach(child => {
                     const activity = child.val();
                     const li = document.createElement('li');
-                    li.textContent = `${activity.user} ${activity.action} at ${new Date(activity.timestamp).toLocaleString()}`;
+                    li.textContent = `${sanitizeInput(activity.user)} ${sanitizeInput(activity.action)} at ${new Date(activity.timestamp).toLocaleString()}`;
                     DOM.recentActivity.appendChild(li);
                 });
             } else {
@@ -463,7 +484,7 @@ async function loadDashboard() {
         const subCounts = Array(5).fill(0);
         userSnapshot.forEach(child => {
             const user = child.val();
-            if (user.subscription_start) {
+            if (user.subscription_start && user.payment_status === 'Approved') {
                 const startDate = new Date(user.subscription_start);
                 const monthDiff = (now.getFullYear() - startDate.getFullYear()) * 12 + (now.getMonth() - startDate.getMonth());
                 if (monthDiff >= 0 && monthDiff < 5) {
@@ -494,6 +515,11 @@ async function loadDashboard() {
                     }
                 }
             });
+        } else {
+            const chartContainer = document.getElementById('subscription-chart')?.parentElement;
+            if (chartContainer) {
+                chartContainer.innerHTML = '<p>Chart unavailable: Library not loaded.</p>';
+            }
         }
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -528,13 +554,13 @@ async function loadUsers(searchQuery = '') {
                             hasUsers = true;
                             const row = document.createElement('tr');
                             row.innerHTML = `
-                                <td>${user.name || 'N/A'}</td>
-                                <td>${user.email || 'N/A'}</td>
-                                <td>${user.role || 'user'}</td>
+                                <td>${sanitizeInput(user.name || 'N/A')}</td>
+                                <td>${sanitizeInput(user.email || 'N/A')}</td>
+                                <td>${sanitizeInput(user.role || 'user')}</td>
                                 <td>${user.subscription_status ? 'Active' : 'Inactive'}</td>
                                 <td>
-                                    <button class="edit-btn" onclick="editUser('${child.key}')" aria-label="Edit User ${user.name || 'User'}">Edit</button>
-                                    <button class="delete-btn" onclick="deleteUser('${child.key}')" aria-label="Delete User ${user.name || 'User'}">Delete</button>
+                                    <button class="edit-btn" onclick="editUser('${child.key}')" aria-label="Edit User ${sanitizeInput(user.name || 'User')}">Edit</button>
+                                    <button class="delete-btn" onclick="deleteUser('${child.key}')" aria-label="Delete User ${sanitizeInput(user.name || 'User')}">Delete</button>
                                 </td>
                             `;
                             DOM.userTableBody.appendChild(row);
@@ -569,6 +595,7 @@ async function loadPayments(searchQuery = '') {
             if (DOM.paymentTableBody) {
                 DOM.paymentTableBody.innerHTML = '';
                 if (snapshot.exists()) {
+                    const fragment = document.createDocumentFragment();
                     const paymentPromises = [];
                     let hasPayments = false;
                     snapshot.forEach(child => {
@@ -585,29 +612,32 @@ async function loadPayments(searchQuery = '') {
                                     hasPayments = true;
                                     const plan = payment.plan && typeof payment.plan === 'string' && VALID_PLANS.includes(payment.plan) ? payment.plan : 'Unknown Plan';
                                     const amount = payment.amount && !isNaN(payment.amount) ? payment.amount : (PLAN_AMOUNTS[plan] || 0);
-                                    return `
-                                        <tr>
-                                            <td>${user.name || 'N/A'}</td>
-                                            <td>${plan}</td>
-                                            <td>₹${amount}</td>
-                                            <td>${payment.unique_id || 'N/A'}</td>
-                                            <td>${payment.status || 'Pending'}</td>
-                                            <td>
-                                                <button class="approve-btn" onclick="approvePayment('${userId}')" aria-label="Approve Payment for ${user.name || 'User'}">Approve</button>
-                                                <button class="reject-btn" onclick="rejectPayment('${userId}')" aria-label="Reject Payment for ${user.name || 'User'}">Reject</button>
-                                            </td>
-                                        </tr>
+                                    const row = document.createElement('tr');
+                                    row.innerHTML = `
+                                        <td>${sanitizeInput(user.name || 'N/A')}</td>
+                                        <td>${sanitizeInput(plan)}</td>
+                                        <td>₹${amount}</td>
+                                        <td>${sanitizeInput(payment.unique_id || 'N/A')}</td>
+                                        <td>${sanitizeInput(payment.status || 'Pending')}</td>
+                                        <td>
+                                            <button class="approve-btn" onclick="approvePayment('${userId}')" aria-label="Approve Payment for ${sanitizeInput(user.name || 'User')}">Approve</button>
+                                            <button class="reject-btn" onclick="rejectPayment('${userId}')" aria-label="Reject Payment for ${sanitizeInput(user.name || 'User')}">Reject</button>
+                                        </td>
                                     `;
+                                    return row;
                                 }
-                                return '';
+                                return null;
                             }).catch(error => {
                                 console.error(`Error fetching user ${userId}:`, error);
-                                return '';
+                                return null;
                             })
                         );
                     });
                     const rows = await Promise.all(paymentPromises);
-                    DOM.paymentTableBody.innerHTML = rows.join('') || '<tr><td colspan="6">No payments match the criteria.</td></tr>';
+                    rows.forEach(row => {
+                        if (row) fragment.appendChild(row);
+                    });
+                    DOM.paymentTableBody.appendChild(fragment);
                     if (!hasPayments) {
                         DOM.paymentTableBody.innerHTML = '<tr><td colspan="6">No payments match the criteria.</td></tr>';
                     }
@@ -643,7 +673,7 @@ async function loadSubscriptions(searchQuery = '') {
                             user.name?.toLowerCase().includes(searchQuery) || 
                             user.email?.toLowerCase().includes(searchQuery) || 
                             user.subscription_plan?.toLowerCase().includes(searchQuery);
-                        if (user.subscription_status && user.subscription_expiry > Date.now() && matchesSearch) {
+                        if (user.subscription_status && user.subscription_expiry > Date.now() && matchesSearch && user.payment_status === 'Approved') {
                             hasActiveSubscriptions = true;
                             const startDate = user.subscription_start ? new Date(user.subscription_start).toLocaleDateString() : 'N/A';
                             const expiryDate = user.subscription_expiry ? new Date(user.subscription_expiry).toLocaleDateString() : 'N/A';
@@ -655,9 +685,9 @@ async function loadSubscriptions(searchQuery = '') {
 
                             const row = document.createElement('tr');
                             row.innerHTML = `
-                                <td>${user.name || 'N/A'}</td>
-                                <td>${user.email || 'N/A'}</td>
-                                <td>${plan}</td>
+                                <td>${sanitizeInput(user.name || 'N/A')}</td>
+                                <td>${sanitizeInput(user.email || 'N/A')}</td>
+                                <td>${sanitizeInput(plan)}</td>
                                 <td>${startDate}</td>
                                 <td>${expiryDate}</td>
                                 <td>${timeLeft}</td>
@@ -688,52 +718,65 @@ async function loadSubscriptions(searchQuery = '') {
 // Load Revenue
 async function loadRevenue() {
     showLoading('revenue-loading');
+    if (!DOM.revenueTableBody) {
+        console.error('Revenue table body element not found.');
+        showError('revenue-error', 'Failed to load revenue: Table element missing.');
+        hideLoading('revenue-loading');
+        return;
+    }
     const filter = DOM.revenueFilter?.value || 'all-active';
+    console.log('Loading revenue with filter:', filter);
     try {
-        const snapshot = await db.ref('users').once('value');
-        if (DOM.revenueTableBody) {
+        const handler = snapshot => {
             DOM.revenueTableBody.innerHTML = '';
             let totalRevenue = 0;
             const now = new Date();
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
-            let hasActiveSubscriptions = false;
+            let hasApprovedSubscriptions = false;
 
             if (snapshot.exists()) {
+                let subscriptionCount = 0;
                 snapshot.forEach(child => {
                     const user = child.val();
                     const userId = child.key;
-                    if (user.subscription_status && user.subscription_expiry > Date.now()) {
-                        hasActiveSubscriptions = true;
+                    if (
+                        user.subscription_status &&
+                        user.subscription_expiry > Date.now() &&
+                        user.payment_status === 'Approved'
+                    ) {
+                        hasApprovedSubscriptions = true;
+                        subscriptionCount++;
+                        const plan = VALID_PLANS.includes(user.subscription_plan) ? user.subscription_plan : 'Core Monthly';
+                        const amount = user.subscription_amount && !isNaN(user.subscription_amount) && user.subscription_amount > 0 ? parseFloat(user.subscription_amount) : (PLAN_AMOUNTS[plan] || 0);
                         const startDate = user.subscription_start ? new Date(user.subscription_start) : null;
-                        const plan = VALID_PLANS.includes(user.subscription_plan) ? user.subscription_plan : user.subscription_plan || 'Core Monthly';
-                        const amount = user.subscription_amount && !isNaN(user.subscription_amount) ? user.subscription_amount : (PLAN_AMOUNTS[plan] || 0);
 
                         let includeInTable = false;
                         if (filter === 'all-active') {
                             includeInTable = true;
-                            totalRevenue += parseFloat(amount) || 0;
+                            totalRevenue += amount;
                         } else if (filter === 'this-month' && startDate && !isNaN(startDate) && startDate.getMonth() === currentMonth && startDate.getFullYear() === currentYear) {
                             includeInTable = true;
-                            totalRevenue += parseFloat(amount) || 0;
+                            totalRevenue += amount;
                         }
 
                         if (includeInTable) {
                             const row = document.createElement('tr');
                             row.innerHTML = `
-                                <td>${user.name || 'N/A'}</td>
-                                <td>${user.email || 'N/A'}</td>
-                                <td>${plan}</td>
-                                <td>₹${amount}</td>
+                                <td>${sanitizeInput(user.name || 'N/A')}</td>
+                                <td>${sanitizeInput(user.email || 'N/A')}</td>
+                                <td>${sanitizeInput(plan)}</td>
+                                <td>₹${amount.toFixed(2)}</td>
                                 <td>${startDate ? startDate.toLocaleDateString() : 'N/A'}</td>
                             `;
                             DOM.revenueTableBody.appendChild(row);
                         }
                     }
                 });
+                console.log(`Found ${subscriptionCount} approved subscriptions.`);
 
-                if (!hasActiveSubscriptions) {
-                    DOM.revenueTableBody.innerHTML = '<tr><td colspan="5">No active subscriptions found.</td></tr>';
+                if (!hasApprovedSubscriptions) {
+                    DOM.revenueTableBody.innerHTML = '<tr><td colspan="5">No approved subscriptions found.</td></tr>';
                 } else if (DOM.revenueTableBody.innerHTML === '') {
                     DOM.revenueTableBody.innerHTML = '<tr><td colspan="5">No subscriptions match the selected filter.</td></tr>';
                 }
@@ -741,12 +784,21 @@ async function loadRevenue() {
                 DOM.revenueTableBody.innerHTML = '<tr><td colspan="5">No users found.</td></tr>';
             }
 
-            if (DOM.totalRevenue) DOM.totalRevenue.textContent = `₹${totalRevenue.toFixed(2)}`;
-        }
+            if (DOM.totalRevenue) {
+                DOM.totalRevenue.textContent = `₹${totalRevenue.toFixed(2)}`;
+                console.log('Total revenue:', totalRevenue);
+            } else {
+                console.error('Total revenue element not found.');
+            }
+        };
+
+        db.ref('users').off('value');
+        db.ref('users').on('value', handler);
+        listeners.push({ ref: 'users', handler });
     } catch (error) {
         console.error('Error loading revenue:', error);
         showError('revenue-error', `Failed to load revenue: ${error.message}`);
-        if (DOM.revenueTableBody) DOM.revenueTableBody.innerHTML = '<tr><td colspan="5">Error loading revenue.</td></tr>';
+        DOM.revenueTableBody.innerHTML = '<tr><td colspan="5">Error loading revenue.</td></tr>';
         if (DOM.totalRevenue) DOM.totalRevenue.textContent = '₹0';
     } finally {
         hideLoading('revenue-loading');
@@ -760,8 +812,8 @@ function showAddUserModal() {
 
 // Add User
 async function addUser() {
-    const name = document.getElementById('user-name')?.value.trim();
-    const email = document.getElementById('user-email')?.value.trim();
+    const name = sanitizeInput(document.getElementById('user-name')?.value.trim());
+    const email = sanitizeInput(document.getElementById('user-email')?.value.trim());
     const role = document.getElementById('user-role')?.value;
 
     if (!validateName(name)) {
@@ -843,8 +895,8 @@ async function editUser(userId) {
 async function saveUser() {
     const modal = document.getElementById('edit-user-modal');
     const userId = modal?.dataset.userId;
-    const name = document.getElementById('edit-user-name')?.value.trim();
-    const email = document.getElementById('edit-user-email')?.value.trim();
+    const name = sanitizeInput(document.getElementById('edit-user-name')?.value.trim());
+    const email = sanitizeInput(document.getElementById('edit-user-email')?.value.trim());
     const role = document.getElementById('edit-user-role')?.value;
 
     if (!userId) {
@@ -909,9 +961,6 @@ async function deleteUser(userId) {
         await db.ref('users/' + userId).remove();
         await db.ref('pending_payments/' + userId).remove();
 
-        // Note: Deleting the user from Firebase Authentication requires admin SDK, which isn't available client-side.
-        // For now, we'll assume the user is marked inactive or handled server-side.
-
         showError('users-error', 'User deleted successfully.', true);
         logActivity(auth.currentUser.email, `deleted user ${user.email || 'unknown'}`);
         loadUsers();
@@ -941,27 +990,38 @@ async function approvePayment(userId) {
             return;
         }
 
+        if (!payment.plan || !VALID_PLANS.includes(payment.plan)) {
+            console.warn(`Invalid or missing plan for user ${userId}: ${payment.plan}, defaulting to Core Monthly`);
+        }
+        if (!payment.amount || isNaN(payment.amount) || payment.amount <= 0) {
+            console.warn(`Invalid or missing amount for user ${userId}: ${payment.amount}`);
+        }
+
         const plan = payment.plan && VALID_PLANS.includes(payment.plan) ? payment.plan : 'Core Monthly';
-        const amount = payment.amount && !isNaN(payment.amount) ? payment.amount : PLAN_AMOUNTS[plan];
+        const amount = payment.amount && !isNaN(payment.amount) && payment.amount > 0 ? payment.amount : PLAN_AMOUNTS[plan];
+        if (!amount || amount <= 0) {
+            throw new Error('Invalid payment amount.');
+        }
+
         const isYearly = plan.toLowerCase().includes('yearly');
         const duration = isYearly ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000; // 1 year or 1 month
         const startDate = Date.now();
         const expiryDate = startDate + duration;
 
         // Update user subscription
-        await db.ref('users/' + userId).update({
+        const updates = {
             subscription_status: true,
             subscription_plan: plan,
             subscription_amount: amount,
             subscription_start: startDate,
-            subscription_expiry: expiryDate
-        });
+            subscription_expiry: expiryDate,
+            payment_status: 'Approved'
+        };
+        console.log(`Approving payment for user ${userId}:`, updates);
+        await db.ref('users/' + userId).update(updates);
 
-        // Update payment status
-        await db.ref('pending_payments/' + userId).update({
-            status: 'Approved',
-            approved_at: Date.now()
-        });
+        // Remove payment from pending_payments
+        await db.ref('pending_payments/' + userId).remove();
 
         showError('payments-error', 'Payment approved successfully.', true);
         logActivity(auth.currentUser.email, `approved payment for ${user.email || 'unknown'}`);
@@ -992,11 +1052,13 @@ async function rejectPayment(userId) {
             return;
         }
 
-        // Update payment status
-        await db.ref('pending_payments/' + userId).update({
-            status: 'Rejected',
-            rejected_at: Date.now()
+        // Update user payment status
+        await db.ref('users/' + userId).update({
+            payment_status: 'Rejected'
         });
+
+        // Remove payment from pending_payments
+        await db.ref('pending_payments/' + userId).remove();
 
         showError('payments-error', 'Payment rejected successfully.', true);
         logActivity(auth.currentUser.email, `rejected payment for ${user.email || 'unknown'}`);
@@ -1036,8 +1098,8 @@ async function editProfile() {
 
 // Save Profile
 async function saveProfile() {
-    const name = document.getElementById('edit-name')?.value.trim();
-    const phone = document.getElementById('edit-phone')?.value.trim();
+    const name = sanitizeInput(document.getElementById('edit-name')?.value.trim());
+    const phone = sanitizeInput(document.getElementById('edit-phone')?.value.trim());
 
     if (!validateName(name)) {
         showError('edit-profile-error', 'Please enter a valid name (1-100 characters).');
@@ -1061,7 +1123,7 @@ async function saveProfile() {
         if (phone) updates.phone = phone;
         await db.ref('users/' + user.uid).update(updates);
 
-        if (DOM.adminName) DOM.adminName.textContent = name;
+        if (DOM.adminName) DOM.adminName.textContent = sanitizeInput(name);
         showError('edit-profile-error', 'Profile updated successfully.', true);
         closeModal('edit-profile-modal');
         logActivity(user.email, 'updated profile');
