@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMC Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-100 font-inter">
+    <!-- Login View -->
+    <div class="login-container" id="login-view" role="region" aria-label="Login Form">
+        <div class="login-card">
+            <h1>TMC Admin Login</h1>
+            <p class="subtitle">Access your admin dashboard.</p>
+            <div class="form-group">
+                <input type="email" id="login-email" placeholder="Email" required aria-label="Email Address">
+                <input type="password" id="login-password" placeholder="Password" required aria-label="Password">
+                <button class="btn primary" onclick="handleLogin()" aria-label="Log In">Login</button>
+            </div>
+            <div class="error-message" id="login-error" role="alert" style="display: none;"></div>
+            <div class="loading-spinner" id="login-loading" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="app-container" id="admin-panel" style="display: none;" role="main" aria-label="Admin Dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar" role="navigation" aria-label="Sidebar Menu">
+            <div class="sidebar-header">
+                <h2>TMC Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#" class="nav-link active" data-section="dashboard" aria-current="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7v7H3z"></path><path d="M14 3h7v7h-7z"></path><path d="M14 14h7v7h-7z"></path><path d="M3 14h7v7H3z"></path></svg>
+                        Dashboard
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-section="users">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        Users
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-section="payments">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                        Payments
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-section="subscriptions">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 0 0-10 10v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a10 10 0 0 0-10-10z"></path><path d="M8 14h8"></path><path d="M12 10v8"></path></svg>
+                        Subscription Plans
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-section="revenue">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Revenue
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-section="profile">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        Profile
+                    </a></li>
+                    <li><a href="#" class="nav-link" data-section="settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        Settings
+                    </a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn logout-btn" onclick="handleLogout()" aria-label="Log Out">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar" role="banner">
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Search users, payments..." aria-label="Search">
+                </div>
+                <div class="user-profile">
+                    <span id="admin-name" aria-live="polite">Admin</span>
+                </div>
+            </header>
+
+            <!-- Content Sections -->
+            <section id="dashboard" class="content-section" role="region" aria-label="Dashboard">
+                <h1>Dashboard</h1>
+                <div class="error-message" id="dashboard-error" role="alert" style="display: none;"></div>
+                <div class="loading-spinner" id="dashboard-loading" style="display: none;"></div>
+                <div class="metrics-grid">
+                    <div class="metric-card" onclick="redirectToUsers()" style="cursor: pointer;" role="button" aria-label="View Total Users">
+                        <h3>Total Users</h3>
+                        <p id="total-users">0</p>
+                    </div>
+                    <div class="metric-card" onclick="showSection('subscriptions')" style="cursor: pointer;" role="button" aria-label="View Active Subscriptions">
+                        <h3>Active Subscriptions</h3>
+                        <p id="active-subs">0</p>
+                    </div>
+                    <div class="metric-card" onclick="showSection('payments')" style="cursor: pointer;" role="button" aria-label="View Pending Payments">
+                        <h3>Pending Payments</h3>
+                        <p id="pending-payments">0</p>
+                    </div>
+                    <div class="metric-card" onclick="showSection('revenue')" style="cursor: pointer;" role="button" aria-label="View Revenue">
+                        <h3>Revenue (This Month)</h3>
+                        <p id="revenue">₹0</p>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Subscription Trends</h3>
+                        <canvas id="subscription-chart" aria-label="Subscription Trends Chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Recent Activity</h3>
+                        <ul id="recent-activity" aria-label="Recent Activity List"></ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="users" class="content-section" style="display: none;" role="region" aria-label="User Management">
+                <h1>User Management</h1>
+                <div class="error-message" id="users-error" role="alert" style="display: none;"></div>
+                <div class="loading-spinner" id="users-loading" style="display: none;"></div>
+                <div class="table-controls">
+                    <button class="btn primary" onclick="showAddUserModal()" aria-label="Add New User">Add User</button>
+                    <select id="user-filter" aria-label="Filter Users by Role">
+                        <option value="all">All Roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="instructor">Instructor</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" role="grid" aria-label="Users Table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="payments" class="content-section" style="display: none;" role="region" aria-label="Payment Management">
+                <h1>Payment Management</h1>
+                <div class="error-message" id="payments-error" role="alert" style="display: none;"></div>
+                <div class="loading-spinner" id="payments-loading" style="display: none;"></div>
+                <div class="table-controls">
+                    <select id="payment-filter" aria-label="Filter Payments by Status">
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" role="grid" aria-label="Payments Table">
+                        <thead>
+                            <tr>
+                                <th scope="col">User</th>
+                                <th scope="col">Plan</th>
+                                <th scope="col">Amount</th>
+                                <th scope="col">Unique ID</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payment-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="subscriptions" class="content-section" style="display: none;" role="region" aria-label="Subscription Plans">
+                <h1>Subscription Plans</h1>
+                <div class="error-message" id="subscriptions-error" role="alert" style="display: none;"></div>
+                <div class="loading-spinner" id="subscriptions-loading" style="display: none;"></div>
+                <div class="table-wrapper">
+                    <table class="data-table" role="grid" aria-label="Subscriptions Table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Plan Type</th>
+                                <th scope="col">Start Date</th>
+                                <th scope="col">Expiry Date</th>
+                                <th scope="col">Time Left</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscription-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="revenue" class="content-section" style="display: none;" role="region" aria-label="Revenue Overview">
+                <h1>Revenue Overview</h1>
+                <div class="error-message" id="revenue-error" role="alert" style="display: none;"></div>
+                <div class="loading-spinner" id="revenue-loading" style="display: none;"></div>
+                <div class="table-controls">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <h3>Total Revenue: <span id="total-revenue">₹0</span></h3>
+                        <select id="revenue-filter" onchange="loadRevenue()" aria-label="Filter Revenue">
+                            <option value="this-month">This Month</option>
+                            <option value="all-active" selected>All Active Subscriptions</option>
+                        </select>
+                        <button class="btn primary" onclick="loadRevenue()" aria-label="Refresh Revenue">Refresh</button>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" role="grid" aria-label="Revenue Table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Plan Type</th>
+                                <th scope="col">Amount</th>
+                                <th scope="col">Start Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="revenue-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="profile" class="content-section" style="display: none;" role="region" aria-label="Admin Profile">
+                <h1>Admin Profile</h1>
+                <div class="error-message" id="profile-error" role="alert" style="display: none;"></div>
+                <div class="loading-spinner" id="profile-loading" style="display: none;"></div>
+                <div class="profile-container">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <h2 id="profile-name">Loading...</h2>
+                            <span class="profile-role" id="profile-role">Admin</span>
+                        </div>
+                        <div class="profile-details">
+                            <div class="profile-item">
+                                <span class="profile-label">Email</span>
+                                <span class="profile-value" id="profile-email">Loading...</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">Phone Number</span>
+                                <span class="profile-value" id="profile-phone">Not provided</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">Last Login</span>
+                                <span class="profile-value" id="profile-last-login">Loading...</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">Account Created</span>
+                                <span class="profile-value" id="profile-created">Loading...</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">Subscription Plan</span>
+                                <span class="profile-value" id="profile-subscription">N/A</span>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <button class="btn primary" onclick="editProfile()" aria-label="Edit Profile">Edit Profile</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="settings" class="content-section" style="display: none;" role="region" aria-label="System Settings">
+                <h1>System Settings</h1>
+                <div class="error-message" id="settings-error" role="alert" style="display: none;"></div>
+                <div class="loading-spinner" id="settings-loading" style="display: none;"></div>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="trial-duration">Trial Duration (Hours)</label>
+                        <input type="number" id="trial-duration" value="24" min="1" aria-label="Trial Duration in Hours">
+                    </div>
+                    <div class="form-group">
+                        <label for="mfa-enabled">Enable Multi-Factor Authentication</label>
+                        <input type="checkbox" id="mfa-enabled" aria-label="Enable Multi-Factor Authentication">
+                    </div>
+                    <h2>Change Admin Credentials</h2>
+                    <div class="form-group">
+                        <label for="new-admin-email">New Admin Email</label>
+                        <input type="email" id="new-admin-email" placeholder="Enter new email" aria-label="New Admin Email">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-admin-password">New Admin Password</label>
+                        <input type="password" id="new-admin-password" placeholder="Enter new password" aria-label="New Admin Password">
+                    </div>
+                    <button class="btn primary" onclick="changeAdminCredentials()" aria-label="Update Admin Credentials">Update Credentials</button>
+                    <button class="btn primary" onclick="saveSettings()" aria-label="Save Settings">Save Settings</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal for Adding User -->
+        <div class="modal" id="add-user-modal" style="display: none;" role="dialog" aria-labelledby="add-user-title">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal('add-user-modal')" aria-label="Close Modal">×</button>
+                <h2 id="add-user-title">Add New User</h2>
+                <div class="form-group">
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" placeholder="Enter name" aria-label="Full Name">
+                </div>
+                <div class="form-group">
+                    <label for="user-email">Email</label>
+                    <input type="email" id="user-email" placeholder="Enter email" aria-label="Email Address">
+                </div>
+                <div class="form-group">
+                    <label for="user-role">Role</label>
+                    <select id="user-role" aria-label="User Role">
+                        <option value="admin">Admin</option>
+                        <option value="instructor">Instructor</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                <button class="btn primary" onclick="addUser()" aria-label="Add User">Add User</button>
+                <div class="error-message" id="add-user-error" role="alert" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Modal for Editing User -->
+        <div class="modal" id="edit-user-modal" style="display: none;" role="dialog" aria-labelledby="edit-user-title">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal('edit-user-modal')" aria-label="Close Modal">×</button>
+                <h2 id="edit-user-title">Edit User</h2>
+                <div class="form-group">
+                    <label for="edit-user-name">Full Name</label>
+                    <input type="text" id="edit-user-name" placeholder="Enter name" aria-label="Full Name">
+                </div>
+                <div class="form-group">
+                    <label for="edit-user-email">Email</label>
+                    <input type="email" id="edit-user-email" placeholder="Enter email" aria-label="Email Address">
+                </div>
+                <div class="form-group">
+                    <label for="edit-user-role">Role</label>
+                    <select id="edit-user-role" aria-label="User Role">
+                        <option value="admin">Admin</option>
+                        <option value="instructor">Instructor</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                <button class="btn primary" onclick="saveUser()" aria-label="Save User Changes">Save Changes</button>
+                <div class="error-message" id="edit-user-error" role="alert" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Modal for Editing Profile -->
+        <div class="modal" id="edit-profile-modal" style="display: none;" role="dialog" aria-labelledby="edit-profile-title">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal('edit-profile-modal')" aria-label="Close Modal">×</button>
+                <h2 id="edit-profile-title">Edit Profile</h2>
+                <div class="form-group">
+                    <label for="edit-name">Full Name</label>
+                    <input type="text" id="edit-name" placeholder="Enter name" aria-label="Full Name">
+                </div>
+                <div class="form-group">
+                    <label for="edit-phone">Phone Number</label>
+                    <input type="tel" id="edit-phone" placeholder="Enter phone number" aria-label="Phone Number">
+                </div>
+                <button class="btn primary" onclick="saveProfile()" aria-label="Save Profile Changes">Save Changes</button>
+                <div class="error-message" id="edit-profile-error" role="alert" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase and Chart.js -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
